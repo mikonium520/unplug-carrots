@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>齊來拔蘿蔔</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 40%, #E0F6FF 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 可愛小兔毛茸茸手掌遊標：精確熱點在頂端 (3, 3)，尺寸縮小至 30x30 */
+        .rabbit-cursor, button, .field-cell {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><g fill="none"><path d="M 11,7 C 9,3 5,5 7,11 C 5,7 2,9 5,14 C 3,13 1,16 4,19 C 7,22 11,23 17,23 C 22,23 24,19 24,15 C 24,11 20,9 17,9 C 17,6 14,5 11,7 Z" fill="%23FFFFFF" stroke="%23E2A299" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="9" cy="10" rx="1.8" ry="3" fill="%23FFB7C5" transform="rotate(-15 9 10)"/><ellipse cx="13" cy="8" rx="1.8" ry="3" fill="%23FFB7C5"/><ellipse cx="17" cy="10" rx="1.8" ry="3" fill="%23FFB7C5" transform="rotate(15 17 10)"/><path d="M 11,16 C 11,14 15,14 15,16 C 15,18 11,18 11,16 Z" fill="%23FF9EAA"/><circle cx="13" cy="19" r="2.2" fill="%23FFB7C5"/></g></svg>') 3 3, auto !important;
+        }
+
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50px;
+            opacity: 0.9;
+            filter: drop-shadow(2px 3px 0px rgba(180, 210, 230, 0.5));
+            animation: floatCloud linear infinite;
+            z-index: 1;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+        }
+        .cloud1 { width: 120px; height: 40px; top: 10%; left: -150px; animation-duration: 25s; }
+        .cloud1::before { width: 50px; height: 50px; top: -20px; left: 20px; }
+        .cloud1::after { width: 40px; height: 40px; top: -15px; left: 55px; }
+
+        .cloud2 { width: 160px; height: 50px; top: 22%; left: -200px; animation-duration: 35s; animation-delay: 5s; }
+        .cloud2::before { width: 70px; height: 70px; top: -30px; left: 25px; }
+        .cloud2::after { width: 50px; height: 50px; top: -20px; left: 80px; }
+
+        @keyframes floatCloud {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(100vw + 300px)); }
+        }
+
+        .sun {
+            position: absolute;
+            top: 25px;
+            right: 35px;
+            width: 75px;
+            height: 75px;
+            background: #FFE066;
+            border-radius: 50%;
+            box-shadow: 0 0 25px #FFD43B;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .sun-face {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .game-card {
+            position: relative;
+            z-index: 10;
+            background: #FFFDF7;
+            border: 4px solid #795548;
+            border-radius: 28px;
+            box-shadow: 0 12px 0px #5D4037, 0 18px 30px rgba(0,0,0,0.15);
+            padding: 24px 30px;
+            width: 92%;
+            max-width: 500px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-title {
+            font-size: 2.3rem;
+            color: #D9531E;
+            margin: 0 0 10px 0;
+            font-weight: 900;
+            text-shadow: 2px 2px 0px #FFD8A8, 4px 4px 0px #795548;
+            letter-spacing: 2px;
+        }
+
+        .btn-main {
+            background: #FF8243;
+            color: #FFFFFF;
+            border: 3px solid #795548;
+            border-radius: 50px;
+            padding: 12px 36px;
+            font-size: 1.35rem;
+            font-weight: bold;
+            box-shadow: 0 6px 0 #A03C11;
+            transition: all 0.1s ease;
+            margin-top: 15px;
+        }
+        .btn-main:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #A03C11;
+        }
+
+        .hud-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFF3BF;
+            border: 3px solid #795548;
+            border-radius: 18px;
+            padding: 8px 16px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #5C3D2E;
+            font-size: 1.05rem;
+        }
+
+        .farm-field {
+            background: #8D5B4C;
+            border: 4px solid #5D4037;
+            border-radius: 20px;
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+            box-shadow: inset 0 6px 12px rgba(0,0,0,0.3);
+            margin: 10px 0;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .field-cell {
+            width: 72px;
+            height: 72px;
+            background: #6D4C41;
+            border: 3px solid #4E342E;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: inset 0 -4px 0 #3E2723, inset 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.08s ease;
+            overflow: hidden;
+        }
+        .field-cell:active {
+            transform: scale(0.94);
+        }
+
+        .field-cell.harvested {
+            background: #5D4037;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .field-cell.harvested::after {
+            content: '';
+            width: 36px;
+            height: 18px;
+            background: #3E2723;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .item-svg {
+            width: 58px;
+            height: 58px;
+            pointer-events: none;
+            filter: drop-shadow(0 3px 2px rgba(0,0,0,0.25));
+        }
+
+        .mole-pop {
+            animation: popUp 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popUp {
+            0% { transform: translateY(20px) scale(0.6); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        /* 按到地鼠時的爆炸震動與閃爍特效 */
+        .explosion-effect {
+            animation: explodeAnim 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+            background: #D9381E !important;
+            border-color: #FF6B6B !important;
+        }
+
+        @keyframes explodeAnim {
+            0% { transform: scale(1.1) rotate(0deg); }
+            20% { transform: scale(0.9) rotate(-10deg); }
+            40% { transform: scale(1.15) rotate(10deg); }
+            60% { transform: scale(0.95) rotate(-5deg); }
+            80% { transform: scale(1.05) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .msg-box {
+            font-size: 1rem;
+            color: #D9480F;
+            font-weight: bold;
+            min-height: 28px;
+            margin-top: 6px;
+        }
+
+        .star-rating {
+            font-size: 2.2rem;
+            color: #FFD43B;
+            text-shadow: 2px 2px 0 #795548;
+            margin: 10px 0;
+        }
+
+        .result-score-tag {
+            font-size: 1.2rem;
+            color: #5C3D2E;
+            font-weight: bold;
+            background: #FFE8CC;
+            border: 2px solid #795548;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin: 8px 0;
+        }
+
+        .japanese-art-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: -10px;
+            pointer-events: none;
+        }
+        .jp-rabbit-svg {
+            width: 125px;
+            height: 125px;
+            filter: drop-shadow(0 4px 0px rgba(0,0,0,0.1));
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="rabbit-cursor">
+
+    <div class="sun">
+        <svg class="sun-face" viewBox="0 0 50 50">
+            <circle cx="17" cy="20" r="2.5" fill="#5D4037"/>
+            <circle cx="33" cy="20" r="2.5" fill="#5D4037"/>
+            <ellipse cx="12" cy="25" rx="3" ry="2" fill="#FF8787" opacity="0.6"/>
+            <ellipse cx="38" cy="25" rx="3" ry="2" fill="#FF8787" opacity="0.6"/>
+            <path d="M 20,27 Q 25,32 30,27" fill="none" stroke="#5D4037" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+
+    <div class="game-card">
+        
+        <!-- 1. 遊戲首頁 -->
+        <div id="screen-home">
+            <h1 class="game-title">齊來拔蘿蔔</h1>
+            <div style="margin: 15px 0;">
+                <svg width="120" height="120" viewBox="0 0 100 100">
+                    <path d="M 50,38 C 30,8 10,25 38,48 C 20,10 60,5 50,38 C 70,5 90,25 62,48" fill="#51CF66" stroke="#2B8A3E" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M 28,45 C 28,45 50,95 50,95 C 50,95 72,45 72,45 C 76,38 24,38 28,45 Z" fill="#FF7A00" stroke="#D9480F" stroke-width="3.5" stroke-linejoin="round"/>
+                    <path d="M 36,55 Q 50,58 64,55" fill="none" stroke="#FFC078" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M 39,68 Q 50,71 61,68" fill="none" stroke="#FFC078" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="43" cy="46" r="2.5" fill="#5D4037"/>
+                    <circle cx="57" cy="46" r="2.5" fill="#5D4037"/>
+                    <ellipse cx="38" cy="50" rx="3" ry="1.8" fill="#FF8787"/>
+                    <ellipse cx="62" cy="50" rx="3" ry="1.8" fill="#FF8787"/>
+                </svg>
+            </div>
+            <p style="color: #6D4C41; font-size: 1.05rem; line-height: 1.5; font-weight: bold;">
+                歡迎來到小兔農場！<br>
+                用小白兔的手快速拔光田裡的紅蘿蔔。<br>
+                小心後面的關卡會有地鼠干擾喔！
+            </p>
+            <button class="btn-main" onclick="startGame()">開始 🥕</button>
+        </div>
+
+        <!-- 2. 主遊戲畫面 -->
+        <div id="screen-game" class="hidden">
+            <div class="hud-bar">
+                <span id="hud-level">第 1 關</span>
+                <span id="hud-timer">時間: 0.0秒</span>
+                <span id="hud-score">得分: 0</span>
+            </div>
+            <div id="farm-grid" class="farm-field"></div>
+            <div id="game-msg" class="msg-box">準備拔蘿蔔！</div>
+        </div>
+
+        <!-- 3. 單關過關結算 -->
+        <div id="screen-level-result" class="hidden">
+            <h2 id="res-title" style="color: #D9480F; margin: 5px 0;">第 1 關完成！</h2>
+            <div id="res-stars" class="star-rating">⭐⭐⭐⭐⭐</div>
+            <div id="res-time-tag" class="result-score-tag">用時：0.0 秒</div>
+            <div id="res-score-tag" class="result-score-tag">本關得分：0 分</div>
+            <button class="btn-main" onclick="nextLevel()">下一關 🚀</button>
+        </div>
+
+        <!-- 4. 完成 5 關終極勝利畫面 -->
+        <div id="screen-victory" class="hidden" style="width:100%;">
+            <h2 style="color: #D9480F; font-size: 1.8rem; margin: 0 0 5px 0;">🎉 太厲害了！ 🎉</h2>
+            <h1 style="color: #FF6B6B; font-size: 2.2rem; margin: 5px 0; text-shadow: 2px 2px 0 #FFE3E3;">你太棒了！</h1>
+            
+            <div id="vic-stars" class="star-rating" style="margin: 5px 0;">⭐⭐⭐⭐⭐</div>
+            <div id="vic-total-score" class="result-score-tag" style="background: #FFF3BF;">總得分：0 分</div>
+
+            <!-- 日本日系可愛繪本風格兔子 (左右下方) -->
+            <div class="japanese-art-container">
+                <!-- 左下：日系抱蘿蔔小胖兔 -->
+                <svg class="jp-rabbit-svg" viewBox="0 0 100 100">
+                    <ellipse cx="32" cy="25" rx="7" ry="20" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5" transform="rotate(-15 32 25)"/>
+                    <ellipse cx="32" cy="25" rx="3.5" ry="13" fill="#FFD8D8" transform="rotate(-15 32 25)"/>
+                    <ellipse cx="68" cy="25" rx="7" ry="20" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5" transform="rotate(15 68 25)"/>
+                    <ellipse cx="68" cy="25" rx="3.5" ry="13" fill="#FFD8D8" transform="rotate(15 68 25)"/>
+                    <ellipse cx="50" cy="82" rx="22" ry="14" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5"/>
+                    <circle cx="50" cy="50" r="26" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5"/>
+                    <ellipse cx="50" cy="54" rx="20" ry="14" fill="#FFFFFF"/>
+                    <circle cx="41" cy="48" r="3.5" fill="#4A3E3D"/>
+                    <circle cx="59" cy="48" r="3.5" fill="#4A3E3D"/>
+                    <circle cx="42" cy="46.5" r="1.2" fill="#FFFFFF"/>
+                    <circle cx="60" cy="46.5" r="1.2" fill="#FFFFFF"/>
+                    <ellipse cx="35" cy="54" rx="5" ry="3" fill="#FFB7B7" opacity="0.8"/>
+                    <ellipse cx="65" cy="54" rx="5" ry="3" fill="#FFB7B7" opacity="0.8"/>
+                    <polygon points="50,53 47,50 53,50" fill="#FF9EAA"/>
+                    <path d="M 47,56 Q 50,59 53,56" fill="none" stroke="#4A3E3D" stroke-width="2" stroke-linecap="round"/>
+                    <g transform="translate(32,52) rotate(-20) scale(0.55)">
+                        <path d="M 28,45 C 28,45 50,95 50,95 C 50,95 72,45 72,45 Z" fill="#FF7A00" stroke="#4A3E3D" stroke-width="3"/>
+                        <path d="M 50,38 C 30,8 10,25 38,48 Z" fill="#51CF66" stroke="#4A3E3D" stroke-width="2"/>
+                    </g>
+                    <ellipse cx="36" cy="66" rx="6" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2" transform="rotate(20 36 66)"/>
+                    <ellipse cx="64" cy="66" rx="6" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2" transform="rotate(-20 64 66)"/>
+                    <ellipse cx="36" cy="92" rx="7" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2"/>
+                    <ellipse cx="64" cy="92" rx="7" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2"/>
+                </svg>
+
+                <!-- 右下：日系舉手歡呼萌萌兔 -->
+                <svg class="jp-rabbit-svg" viewBox="0 0 100 100">
+                    <ellipse cx="35" cy="22" rx="6.5" ry="19" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5" transform="rotate(-8 35 22)"/>
+                    <ellipse cx="35" cy="22" rx="3" ry="12" fill="#FFD8D8" transform="rotate(-8 35 22)"/>
+                    <ellipse cx="65" cy="22" rx="6.5" ry="19" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5" transform="rotate(8 65 22)"/>
+                    <ellipse cx="65" cy="22" rx="3" ry="12" fill="#FFD8D8" transform="rotate(8 65 22)"/>
+                    <ellipse cx="50" cy="80" rx="20" ry="15" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5"/>
+                    <circle cx="50" cy="48" r="25" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2.5"/>
+                    <path d="M 40,46 Q 43,42 46,46" fill="none" stroke="#4A3E3D" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M 54,46 Q 57,42 60,46" fill="none" stroke="#4A3E3D" stroke-width="2.5" stroke-linecap="round"/>
+                    <ellipse cx="35" cy="51" rx="5" ry="3" fill="#FFB7B7" opacity="0.8"/>
+                    <ellipse cx="65" cy="51" rx="5" ry="3" fill="#FFB7B7" opacity="0.8"/>
+                    <polygon points="50,50 47,47 53,47" fill="#FF9EAA"/>
+                    <path d="M 45,54 Q 50,60 55,54" fill="#FF9EAA" stroke="#4A3E3D" stroke-width="2"/>
+                    <ellipse cx="26" cy="45" rx="5" ry="8" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2" transform="rotate(-40 26 45)"/>
+                    <ellipse cx="74" cy="45" rx="5" ry="8" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2" transform="rotate(40 74 45)"/>
+                    <ellipse cx="38" cy="92" rx="7" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2"/>
+                    <ellipse cx="62" cy="92" rx="7" ry="4" fill="#FFFFFF" stroke="#4A3E3D" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <button class="btn-main" onclick="restartGame()" style="margin-top: 0;">再玩一次 🔄</button>
+        </div>
+
+    </div>
+
+    <script>
+        const SVG_CARROT = `<svg class="item-svg" viewBox="0 0 100 100">
+            <path d="M 50,35 C 30,8 10,25 38,45 C 20,10 60,5 50,35 C 70,5 90,25 62,45" fill="#51CF66" stroke="#2B8A3E" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M 30,42 C 30,42 50,92 50,92 C 50,92 70,42 70,42 C 74,35 26,35 30,42 Z" fill="#FF7A00" stroke="#D9480F" stroke-width="3.5" stroke-linejoin="round"/>
+            <path d="M 37,52 Q 50,55 63,52" fill="none" stroke="#FFC078" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 40,65 Q 50,68 60,65" fill="none" stroke="#FFC078" stroke-width="3" stroke-linecap="round"/>
+        </svg>`;
+
+        const SVG_MOLE = `<svg class="item-svg mole-pop" viewBox="0 0 100 100">
+            <ellipse cx="50" cy="85" rx="35" ry="12" fill="#3E2723"/>
+            <path d="M 25,85 C 25,45 75,45 75,85 Z" fill="#795548" stroke="#4E342E" stroke-width="3.5"/>
+            <ellipse cx="50" cy="68" rx="16" ry="11" fill="#D7CCC8"/>
+            <ellipse cx="50" cy="63" rx="6" ry="4" fill="#FF8787"/>
+            <circle cx="38" cy="55" r="3" fill="#212121"/>
+            <circle cx="62" cy="55" r="3" fill="#212121"/>
+            <path d="M 22,65 C 15,55 20,45 28,55" fill="#795548" stroke="#4E342E" stroke-width="2"/>
+            <path d="M 78,65 C 85,55 80,45 72,55" fill="#795548" stroke="#4E342E" stroke-width="2"/>
+        </svg>`;
+
+        const SVG_EXPLOSION = `<svg class="item-svg" viewBox="0 0 100 100">
+            <path d="M 50 10 L 60 35 L 85 20 L 70 45 L 95 60 L 68 68 L 75 95 L 50 75 L 25 95 L 32 68 L 5 60 L 30 45 L 15 20 L 40 35 Z" fill="#FFD43B" stroke="#D9381E" stroke-width="4" stroke-linejoin="round"/>
+            <text x="50" y="60" font-size="32" text-anchor="middle" font-weight="900" fill="#D9381E">💥</text>
+        </svg>`;
+
+        const levelConfigs = [
+            { level: 1, cols: 2, rows: 2, carrots: 4, moles: 0 },
+            { level: 2, cols: 3, rows: 3, carrots: 9, moles: 2 },
+            { level: 3, cols: 4, rows: 4, carrots: 16, moles: 4 },
+            { level: 4, cols: 4, rows: 4, carrots: 16, moles: 6 },
+            { level: 5, cols: 4, rows: 4, carrots: 16, moles: 8 }
+        ];
+
+        let currentLevelIndex = 0;
+        let remainingCarrots = 0;
+        let levelStartTime = 0;
+        let timerInterval = null;
+        let moleInterval = null;
+        let isGameActive = false;
+        let currentLevelScore = 0;
+        let totalScore = 0;
+
+        // 音效生成 (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } else if (type === 'mole') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(90, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            }
+        }
+
+        function showScreen(screenId) {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-level-result').classList.add('hidden');
+            document.getElementById('screen-victory').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startGame() {
+            currentLevelIndex = 0;
+            totalScore = 0;
+            loadLevel();
+        }
+
+        function loadLevel() {
+            showScreen('screen-game');
+            const cfg = levelConfigs[currentLevelIndex];
+            remainingCarrots = cfg.carrots;
+            currentLevelScore = cfg.carrots * 100;
+
+            document.getElementById('hud-level').innerText = `第 ${cfg.level} 關`;
+            document.getElementById('hud-score').innerText = `得分: ${currentLevelScore}`;
+            document.getElementById('hud-timer').innerText = `時間: 0.0秒`;
+
+            const msgEl = document.getElementById('game-msg');
+            if (cfg.moles > 0) {
+                msgEl.innerText = `⚠️ 小心同時有 ${cfg.moles} 隻地鼠干擾！`;
+            } else {
+                msgEl.innerText = "點擊泥土裡的紅蘿蔔拔出來！";
+            }
+
+            const gridEl = document.getElementById('farm-grid');
+            gridEl.style.gridTemplateColumns = `repeat(${cfg.cols}, 1fr)`;
+            gridEl.innerHTML = '';
+
+            for (let i = 0; i < cfg.carrots; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'field-cell';
+                cell.dataset.type = 'carrot';
+                cell.dataset.lastMoleTime = '0'; // 用於冷卻判斷
+                cell.dataset.cooldown = '0';
+                cell.innerHTML = SVG_CARROT;
+                cell.onclick = () => handleCellClick(cell);
+                gridEl.appendChild(cell);
+            }
+
+            clearInterval(timerInterval);
+            clearInterval(moleInterval);
+
+            if (cfg.moles > 0) {
+                setupMoles(cfg.moles);
+            }
+
+            levelStartTime = Date.now();
+            isGameActive = true;
+            timerInterval = setInterval(updateTimer, 100);
+        }
+
+        function updateTimer() {
+            if (!isGameActive) return;
+            const elapsed = ((Date.now() - levelStartTime) / 1000).toFixed(1);
+            document.getElementById('hud-timer').innerText = `時間: ${elapsed}秒`;
+        }
+
+        function setupMoles(maxMoles) {
+            const gridEl = document.getElementById('farm-grid');
+            
+            moleInterval = setInterval(() => {
+                if (!isGameActive) return;
+
+                const cells = Array.from(gridEl.getElementsByClassName('field-cell'));
+                const activeMoles = cells.filter(c => c.dataset.type === 'mole').length;
+
+                if (activeMoles < maxMoles) {
+                    const now = Date.now();
+                    // 關鍵修改 1：同一格必須相隔 8000ms - 10000ms (8-10秒) 才能重新出現地鼠
+                    const availableCarrots = cells.filter(c => {
+                        const lastTime = parseInt(c.dataset.lastMoleTime || '0', 10);
+                        const cd = parseInt(c.dataset.cooldown || '8000', 10);
+                        return c.dataset.type === 'carrot' && (now - lastTime >= cd);
+                    });
+
+                    if (availableCarrots.length > 0) {
+                        const targetCell = availableCarrots[Math.floor(Math.random() * availableCarrots.length)];
+                        targetCell.dataset.type = 'mole';
+                        targetCell.dataset.lastMoleTime = now.toString();
+                        // 隨機動態設定 8000ms ~ 10000ms 冷卻時間
+                        targetCell.dataset.cooldown = (8000 + Math.random() * 2000).toString();
+                        targetCell.innerHTML = SVG_MOLE;
+
+                        const duration = Math.max(900, 1600 - currentLevelIndex * 150);
+                        setTimeout(() => {
+                            if (targetCell.dataset.type === 'mole' && isGameActive) {
+                                targetCell.dataset.type = 'carrot';
+                                targetCell.innerHTML = SVG_CARROT;
+                            }
+                        }, duration);
+                    }
+                }
+            }, 350);
+        }
+
+        function handleCellClick(cell) {
+            if (!isGameActive) return;
+
+            const type = cell.dataset.type;
+
+            if (type === 'carrot') {
+                playSound('pop');
+                cell.dataset.type = 'harvested';
+                cell.innerHTML = '';
+                cell.classList.add('harvested');
+
+                remainingCarrots--;
+                currentLevelScore += 50;
+                document.getElementById('hud-score').innerText = `得分: ${currentLevelScore}`;
+
+                if (remainingCarrots === 0) {
+                    completeLevel();
+                }
+            } else if (type === 'mole') {
+                playSound('mole');
+                document.getElementById('game-msg').innerText = "💥 踩中地鼠陷阱！時間 +2秒（扣分）";
+                levelStartTime -= 2000; // 罰時 2 秒
+                currentLevelScore = Math.max(0, currentLevelScore - 120);
+                document.getElementById('hud-score').innerText = `得分: ${currentLevelScore}`;
+
+                // 關鍵修改 2：加入爆炸動畫特效與視覺突顯
+                cell.dataset.type = 'exploding';
+                cell.innerHTML = SVG_EXPLOSION;
+                cell.classList.add('explosion-effect');
+
+                setTimeout(() => {
+                    cell.classList.remove('explosion-effect');
+                    if (isGameActive && cell.dataset.type === 'exploding') {
+                        cell.dataset.type = 'carrot';
+                        cell.innerHTML = SVG_CARROT;
+                    }
+                }, 400);
+            }
+        }
+
+        function completeLevel() {
+            isGameActive = false;
+            clearInterval(timerInterval);
+            clearInterval(moleInterval);
+            playSound('win');
+
+            const timeSpent = parseFloat(((Date.now() - levelStartTime) / 1000).toFixed(1));
+            
+            // 時間獎勵分
+            const timeBonus = Math.max(0, Math.round((40 - timeSpent) * 15));
+            currentLevelScore += timeBonus;
+            totalScore += currentLevelScore;
+
+            // 星級評定
+            let stars = 5;
+            if (timeSpent > 25) stars = 2;
+            else if (timeSpent > 18) stars = 3;
+            else if (timeSpent > 12) stars = 4;
+
+            const starsStr = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+
+            if (currentLevelIndex < 4) {
+                document.getElementById('res-title').innerText = `第 ${currentLevelIndex + 1} 關完成！`;
+                document.getElementById('res-stars').innerText = starsStr;
+                document.getElementById('res-time-tag').innerText = `完成時間：${timeSpent} 秒`;
+                document.getElementById('res-score-tag').innerText = `本關得分：${currentLevelScore} 分`;
+                showScreen('screen-level-result');
+            } else {
+                // 通關 5 關
+                document.getElementById('vic-stars').innerText = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+                document.getElementById('vic-total-score').innerText = `總得分：${totalScore} 分`;
+                showScreen('screen-victory');
+            }
+        }
+
+        function nextLevel() {
+            currentLevelIndex++;
+            loadLevel();
+        }
+
+        function restartGame() {
+            startGame();
+        }
+    </script>
+</body>
+</html>
